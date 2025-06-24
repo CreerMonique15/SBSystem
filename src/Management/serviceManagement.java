@@ -38,7 +38,7 @@ public class serviceManagement {
                     break;
                 
                 case "2":
-                    
+                    viewService();
                     break;
                     
                 case "3":
@@ -115,5 +115,24 @@ public class serviceManagement {
         System.out.println("\nCustomer Added Successfully!!!");
     }
     
+    public void viewService() {
+
+        System.out.println("\n🧾 SERVICE LIST: ");
+
+        String sqlQuery = "SELECT s.service_name AS service_name, " +
+                          "       s.description AS description, " +
+                          "       c.name AS category, " +
+                          "       s.price AS price, " +
+                          "       st.s_fname AS staff " +
+                          "FROM services_tbl s " +
+                          "JOIN categories_tbl c ON s.category_id = c.category_id " +
+                          "JOIN staff_tbl st ON s.assigned_staff = st.s_id";
+
+        String[] columnHeaders = {"Service Name", "Description", "Category", "Price", "Assigned Staff"};
+        String[] columnNames = {"service_name", "description", "category", "price", "staff"};
+
+        dbc.viewRecords(sqlQuery, columnHeaders, columnNames);
+    }
+
     
 }
