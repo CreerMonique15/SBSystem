@@ -5,6 +5,8 @@ import config.DBconnector;
 import config.utils;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 public class serviceManagement {
@@ -42,11 +44,13 @@ public class serviceManagement {
                     break;
                     
                 case "3":
-                    
+                    viewService();
+                    updateService();
                     break;
                     
                 case "4":
-                    
+                    viewService();
+                    deleteService();
                     break;
                     
                 case "5": // Back to the main Menu
@@ -119,7 +123,8 @@ public class serviceManagement {
 
         System.out.println("\n🧾 SERVICE LIST: ");
 
-        String sqlQuery = "SELECT s.service_name AS service_name, " +
+        String sqlQuery = "SELECT s.service_id AS service_id, "+
+                          "       s.service_name AS service_name, " +
                           "       s.description AS description, " +
                           "       c.name AS category, " +
                           "       s.price AS price, " +
@@ -128,11 +133,174 @@ public class serviceManagement {
                           "JOIN categories_tbl c ON s.category_id = c.category_id " +
                           "JOIN staff_tbl st ON s.assigned_staff = st.s_id";
 
-        String[] columnHeaders = {"Service Name", "Description", "Category", "Price", "Assigned Staff"};
-        String[] columnNames = {"service_name", "description", "category", "price", "staff"};
+        String[] columnHeaders = {"ID", " Service Name", "Description", "Category", "Price", "Assigned Staff"};
+        String[] columnNames = {"service_id", "service_name", "description", "category", "price", "staff"};
 
         dbc.viewRecords(sqlQuery, columnHeaders, columnNames);
     }
-
     
+    public void updateService() {
+        System.out.println("\n===============================");
+        System.out.println("         UPDATE SERVICE");
+        System.out.println("===============================");
+
+        // Ask for Service ID
+        System.out.print("\nEnter Service ID to update: ");
+        String idInput = sc.nextLine().trim();
+
+        // Validate numeric input
+        while (!idInput.matches("\\d+")) {
+            System.out.println("❌ Invalid ID format. Please enter numbers only.\n");
+            System.out.print("Enter Service ID again: ");
+            idInput = sc.nextLine().trim();
+        }
+
+        int serviceId = Integer.parseInt(idInput);
+
+        // Check if service exists
+        while (dbc.getSingleValue("SELECT COUNT(*) FROM services_tbl WHERE service_id = ?", serviceId) == 0) {
+            System.out.println("❌ Service with ID \"" + serviceId + "\" does not exist.\n");
+            System.out.print("Enter Service ID again: ");
+            idInput = sc.nextLine().trim();
+
+            while (!idInput.matches("\\d+")) {
+                System.out.println("❌ Invalid ID format. Please enter numbers only.\n");
+                System.out.print("Enter Service ID again: ");
+                idInput = sc.nextLine().trim();
+            }
+
+            serviceId = Integer.parseInt(idInput);
+        }
+
+        // Prompt for update fields
+        System.out.println("\n🔁 Enter new values (leave blank to keep existing):");
+
+        System.out.print("New Service Name: ");
+        String name = sc.nextLine().trim();
+
+        System.out.print("New Description: ");
+        String desc = sc.nextLine().trim();
+
+        // Category selection
+        String categoryInput = "";
+        int categoryId = 0;
+        cm.viewCategories();
+        while (true) {
+            System.out.print("New Category ID (leave blank to keep existing): ");
+            categoryInput = sc.nextLine().trim();
+            if (categoryInput.isEmpty()) break;
+            if (categoryInput.matches("\\d+")) {
+                categoryId = Integer.parseInt(categoryInput);
+                if (dbc.getSingleValue("SELECT COUNT(*) FROM categories_tbl WHERE category_id = ?", categoryId) != 0) {
+                    break;
+                } else {
+                    System.out.println("❌ Category ID not found.");
+                }
+            } else {
+                System.out.println("❌ Invalid ID format.");
+            }
+        }
+
+        // Price input
+        double price = -1;
+        System.out.print("New Price (leave blank to keep existing): ");
+        String priceInput = sc.nextLine().trim();
+        if (!priceInput.isEmpty()) {
+            try {
+                price = Double.parseDouble(priceInput);
+            } catch (NumberFormatException e) {
+                System.out.println("❌ Invalid price format. Price will not be updated.");
+            }
+        }
+
+        // Staff selection
+        String staffInput = "";
+        int staffId = 0;
+        sm.viewStaff();
+        while (true) {
+            System.out.print("New Staff ID (leave blank to keep existing): ");
+            staffInput = sc.nextLine().trim();
+            if (staffInput.isEmpty()) break;
+            if (staffInput.matches("\\d+")) {
+                staffId = Integer.parseInt(staffInput);
+                if (dbc.getSingleValue("SELECT COUNT(*) FROM staff_tbl WHERE s_id = ?", staffId) != 0) {
+                    break;
+                } else {
+                    System.out.println("❌ Staff ID not found.");
+                }
+            } else {
+                System.out.println("❌ Invalid ID format.");
+            }
+        }
+
+        // Build SQL and values
+        StringBuilder sql = new StringBuilder("UPDATE services_tbl SET ");
+        List<Object> values = new ArrayList<>();
+
+        if (!name.isEmpty()) {
+            sql.append("service_name = ?, ");
+            values.add(name);
+        }
+        if (!desc.isEmpty()) {
+            sql.append("description = ?, ");
+            values.add(desc);
+        }
+        if (categoryId != 0) {
+            sql.append("category_id = ?, ");
+            values.add(categoryId);
+        }
+        if (price >= 0) {
+            sql.append("price = ?, ");
+            values.add(price);
+        }
+        if (staffId != 0) {
+            sql.append("assigned_staff = ?, ");
+            values.add(staffId);
+        }
+
+        if (values.isEmpty()) {
+            System.out.println("⚠️ No fields to update. Operation cancelled.");
+            return;
+        }
+
+        sql.append("updated_at = ? WHERE service_id = ?");
+        values.add(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        values.add(serviceId);
+
+        // Perform the update
+        dbc.updateRecord(sql.toString(), values.toArray());
+        System.out.println("✅ Service updated successfully.");
+    }
+    
+     public void deleteService() {
+        System.out.println("\n===============================");
+        System.out.println("         DELETE SERVICE");
+        System.out.println("===============================");
+        int serviceId;
+        System.out.print("\nEnter Service ID to Delete: ");
+
+        while (true) {
+            
+            if (sc.hasNextInt()) {
+                serviceId = sc.nextInt();
+                sc.nextLine(); 
+
+                String sql = "SELECT service_id FROM services_tbl WHERE service_id = ?";
+                if (dbc.getSingleValue(sql, serviceId) != 0) {
+                    break; 
+                } else {
+                    System.out.print("Service with ID " + serviceId + " does not exist!"
+                            + " Please try again : ");
+                }
+            } else {
+                System.out.print("Invalid input! Please enter a numeric Service ID :");
+                sc.next(); 
+            }
+        }
+        System.out.println("");
+        String qry = "DELETE FROM services_tbl WHERE service_id = ?";
+        dbc.deleteRecord(qry, serviceId);
+        System.out.println("Service Deleted successfully!!!");
+    }
+
 }

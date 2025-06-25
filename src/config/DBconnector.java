@@ -5,9 +5,12 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 public class DBconnector {
@@ -211,39 +214,44 @@ public class DBconnector {
 
 
 
-    public void updateRecord(String sql, Object... values) {
-        try (Connection conn = DBconnector.connectDB(); // Use the connectDB method
+    public boolean updateRecord(String sql, Object... values) {
+        try (Connection conn = DBconnector.connectDB();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            // Loop through the values and set them in the prepared statement dynamically
             for (int i = 0; i < values.length; i++) {
-                if (values[i] instanceof Integer) {
-                    pstmt.setInt(i + 1, (Integer) values[i]); // If the value is Integer
-                } else if (values[i] instanceof Double) {
-                    pstmt.setDouble(i + 1, (Double) values[i]); // If the value is Double
-                } else if (values[i] instanceof Float) {
-                    pstmt.setFloat(i + 1, (Float) values[i]); // If the value is Float
-                } else if (values[i] instanceof Long) {
-                    pstmt.setLong(i + 1, (Long) values[i]); // If the value is Long
-                } else if (values[i] instanceof Boolean) {
-                    pstmt.setBoolean(i + 1, (Boolean) values[i]); // If the value is Boolean
-                } else if (values[i] instanceof java.util.Date) {
-                    pstmt.setDate(i + 1, new java.sql.Date(((java.util.Date) values[i]).getTime())); // If the value is Date
-                } else if (values[i] instanceof java.sql.Date) {
-                    pstmt.setDate(i + 1, (java.sql.Date) values[i]); // If it's already a SQL Date
-                } else if (values[i] instanceof java.sql.Timestamp) {
-                    pstmt.setTimestamp(i + 1, (java.sql.Timestamp) values[i]); // If the value is Timestamp
+                Object value = values[i];
+                int paramIndex = i + 1;
+
+                if (value instanceof Integer) {
+                    pstmt.setInt(paramIndex, (Integer) value);
+                } else if (value instanceof Double) {
+                    pstmt.setDouble(paramIndex, (Double) value);
+                } else if (value instanceof Float) {
+                    pstmt.setFloat(paramIndex, (Float) value);
+                } else if (value instanceof Long) {
+                    pstmt.setLong(paramIndex, (Long) value);
+                } else if (value instanceof Boolean) {
+                    pstmt.setBoolean(paramIndex, (Boolean) value);
+                } else if (value instanceof java.util.Date) {
+                    pstmt.setDate(paramIndex, new java.sql.Date(((java.util.Date) value).getTime()));
+                } else if (value instanceof java.sql.Date) {
+                    pstmt.setDate(paramIndex, (java.sql.Date) value);
+                } else if (value instanceof java.sql.Timestamp) {
+                    pstmt.setTimestamp(paramIndex, (java.sql.Timestamp) value);
                 } else {
-                    pstmt.setString(i + 1, values[i].toString()); // Default to String for other types
+                    pstmt.setString(paramIndex, value.toString());
                 }
             }
 
-            pstmt.executeUpdate();
+            int affectedRows = pstmt.executeUpdate();
+            return affectedRows > 0;
+
         } catch (SQLException e) {
             System.out.println("Error updating record: " + e.getMessage());
+            return false;
         }
     }
-    
+
     public void deleteRecord(String sql, Object... values) {
         try (Connection conn = DBconnector.connectDB();
         PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -324,6 +332,39 @@ public class DBconnector {
         }
         return result;
     }
+    
+    public Map<String, String> getSingleRecord(String sql, Object... params) {
+        Map<String, String> result = new HashMap<>();
+        try (Connection conn = connectDB();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            for (int i = 0; i < params.length; i++) {
+                pstmt.setObject(i + 1, params[i]);
+            }
+            ResultSet rs = pstmt.executeQuery();
+            ResultSetMetaData meta = rs.getMetaData();
+            if (rs.next()) {
+                for (int i = 1; i <= meta.getColumnCount(); i++) {
+                    result.put(meta.getColumnName(i), rs.getString(i));
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+        return result;
+    }
 
+    public int getQuadValue(String sql, Object... values) {
+        try (Connection conn = connectDB();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            for (int i = 0; i < values.length; i++) {
+                pstmt.setObject(i + 1, values[i]);
+            }
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) return rs.getInt(1);
+        } catch (SQLException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+        return 0;
+    }
     
 }

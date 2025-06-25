@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.Map;
 import java.util.Scanner;
 
 
@@ -29,15 +30,14 @@ public class appointmentBooking {
                                 "|                                                                                                         |\n" +
                                 "|  [1] Book New Appointment                                                                               |\n" +
                                 "|  [2] View All Appointments                                                                              |\n" +
-                                "|  [3] Search Appointment                                                                                 |\n" +
-                                "|  [4] Update Appointment                                                                                 |\n" +
-                                "|  [5] Cancel Appointment                                                                                 |\n" +
-                                "|  [6] Back to Main Menu                                                                                  |\n" +
+                                "|  [3] Update Appointment                                                                                 |\n" +
+                                "|  [4] Cancel Appointment                                                                                 |\n" +
+                                "|  [5] Back to Main Menu                                                                                  |\n" +
                                 "|                                                                                                         |\n" +
                                 "|_________________________________________________________________________________________________________|");
 
 
-            action = utils.getValidatedChoice(1, 6);
+            action = utils.getValidatedChoice(1, 5);
             
             switch(action){
                 case "1":
@@ -45,27 +45,25 @@ public class appointmentBooking {
                     break;
                 
                 case "2":
-                    
+                    viewAppointments();
                     break;
                     
                 case "3":
-                    
+                    viewAppointments();
+                    updateAppointment();
+                    break;
+                case "4": 
+                    viewAppointments();
+                    cancelAppointment();
                     break;
                     
-                case "4":
-                    
-                    break;
-                case "5": 
-
-                    break;
-                    
-                case "6": // Back to the main Menu
+                case "5": // Back to the main Menu
                     System.out.println("Returning to Main Menu...");
                     break;
                     
             }
             
-        }while(!action.equals("6"));
+        }while(!action.equals("5"));
     }
     
     public void addAppointment() {
@@ -157,70 +155,228 @@ public class appointmentBooking {
             }
         }
 
-                DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-           DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+       DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+       DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
 
-           LocalDateTime now = LocalDateTime.now();
-           LocalDateTime appointmentDateTime = null;
-           String dateInput = "";
-           String timeInput = "";
-           LocalDate date = null;
-           LocalTime time = null;
+       LocalDateTime now = LocalDateTime.now();
+       LocalDateTime appointmentDateTime = null;
+       String dateInput = "";
+       String timeInput = "";
+       LocalDate date = null;
+       LocalTime time = null;
 
-           while (true) {
-               try {
-                   // Step 4: Enter Appointment Date and Time
-                   System.out.print("Enter Appointment Date (YYYY-MM-DD): ");
-                   dateInput = sc.nextLine().trim();
+       while (true) {
+           try {
+               // Step 4: Enter Appointment Date and Time
+               System.out.print("Enter Appointment Date (YYYY-MM-DD): ");
+               dateInput = sc.nextLine().trim();
 
-                   System.out.print("Enter Appointment Time (HH:MM): ");
-                   timeInput = sc.nextLine().trim();
+               System.out.print("Enter Appointment Time (HH:MM): ");
+               timeInput = sc.nextLine().trim();
 
-                   // Parse date and time
-                   date = LocalDate.parse(dateInput, dateFormatter);
-                   time = LocalTime.parse(timeInput, timeFormatter);
-                   appointmentDateTime = LocalDateTime.of(date, time);
+               // Parse date and time
+               date = LocalDate.parse(dateInput, dateFormatter);
+               time = LocalTime.parse(timeInput, timeFormatter);
+               appointmentDateTime = LocalDateTime.of(date, time);
 
-                   // ✅ Validate that appointment is not in the past
-                   if (appointmentDateTime.isBefore(now)) {
-                       System.out.println("❌ Appointment must be scheduled for the present or future only.\n");
-                       continue;
-                   }
-
-                   // ✅ Check if staff is already booked
-                   String checkAvailability = "SELECT COUNT(*) FROM appointments_tbl WHERE staff_id = ? AND date = ? AND time = ?";
-                   int conflict = dbc.getTripleValue(checkAvailability, staffId, dateInput, timeInput);
-
-                   if (conflict > 0) {
-                       System.out.println("❌ Staff is already booked at that time. Try a different time.\n");
-                       continue;
-                   }
-
-                   // ✅ All validations passed
-                   break;
-
-               } catch (DateTimeParseException e) {
-                   System.out.println("❌ Invalid format. Please enter date as YYYY-MM-DD and time as HH:MM.\n");
+               // ✅ Validate that appointment is not in the past
+               if (appointmentDateTime.isBefore(now)) {
+                   System.out.println("❌ Appointment must be scheduled for the present or future only.\n");
+                   continue;
                }
+
+               // ✅ Check if staff is already booked
+               String checkAvailability = "SELECT COUNT(*) FROM appointments_tbl WHERE staff_id = ? AND date = ? AND time = ?";
+               int conflict = dbc.getTripleValue(checkAvailability, staffId, dateInput, timeInput);
+
+               if (conflict > 0) {
+                   System.out.println("❌ Staff is already booked at that time. Try a different time.\n");
+                   continue;
+               }
+
+               // ✅ All validations passed
+               break;
+
+           } catch (DateTimeParseException e) {
+               System.out.println("❌ Invalid format. Please enter date as YYYY-MM-DD and time as HH:MM.\n");
            }
+       }
 
-           // ✅ Ready to insert
-           System.out.println("✅ Appointment slot is valid and available.");
+       // ✅ Ready to insert
+       System.out.println("✅ Appointment slot is valid and available.");
 
-           // Step 5: Insert into Appointments Table
-           String insertSQL = "INSERT INTO appointments_tbl (customer_id, service_id, staff_id, date, time, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'Pending', ?, ?)";
+       // Step 5: Insert into Appointments Table
+       String insertSQL = "INSERT INTO appointments_tbl (customer_id, service_id, staff_id, date, time, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'Pending', ?, ?)";
 
-           // ✅ Format timestamp
-           String nowStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+       // ✅ Format timestamp
+       String nowStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
-           boolean success = dbc.addRecord(insertSQL, cusId, serId, staffId, dateInput, timeInput, nowStr, nowStr);
+       boolean success = dbc.addRecord(insertSQL, cusId, serId, staffId, dateInput, timeInput, nowStr, nowStr);
 
-           if (success) {
-               System.out.println("\n✅ Appointment successfully booked!");
-           } else {
-               System.out.println("\n❌ Failed to book appointment. Please try again.");
-           }
-
-   
+       if (success) {
+           System.out.println("\n✅ Appointment successfully booked!");
+       } else {
+           System.out.println("\n❌ Failed to book appointment. Please try again.");
+       }
     }
+    
+    public void viewAppointments() {
+        System.out.println("\n📅 APPOINTMENT LIST:");
+
+        String sqlQuery = "SELECT a.a_id AS a_id, " +
+                          "       c.c_fname AS customer, " +
+                          "       s.service_name AS service, " +
+                          "       cat.name AS category, " +
+                          "       st.s_fname AS staff, " +
+                          "       a.date AS date, " +
+                          "       a.time AS time, " +
+                          "       a.status AS status " +
+                          "FROM appointments_tbl a " +
+                          "JOIN customers_tbl c ON a.customer_id = c.c_id " +
+                          "JOIN services_tbl s ON a.service_id = s.service_id " +
+                          "JOIN categories_tbl cat ON s.category_id = cat.category_id " +
+                          "JOIN staff_tbl st ON a.staff_id = st.s_id " +
+                          "ORDER BY a.date ASC, a.time ASC";
+
+        String[] headers = {"ID", "Customer", "Service", "Category", "Staff", "Date", "Time", "Status"};
+        String[] fields  = {"a_id", "customer", "service", "category", "staff", "date", "time", "status"};
+
+        dbc.viewRecords(sqlQuery, headers, fields);
+    }
+    
+    public void updateAppointment() {
+        System.out.println("\n===============================");
+        System.out.println("        UPDATE APPOINTMENT");
+        System.out.println("===============================");
+
+        // Step 1: Ask for Appointment ID
+        int appointmentId;
+        while (true) {
+            System.out.print("\nEnter Appointment ID to Update: ");
+            String input = sc.nextLine().trim();
+
+            if (input.matches("\\d+")) {
+                appointmentId = Integer.parseInt(input);
+                String checkSQL = "SELECT COUNT(*) FROM appointments_tbl WHERE a_id = ? AND status = 'Pending'";
+                if (dbc.getSingleValue(checkSQL, appointmentId) != 0) {
+                    break;
+                } else {
+                    System.out.println("❌ No pending appointment with that ID. Try again.");
+                }
+            } else {
+                System.out.println("❌ Invalid input. Please enter a numeric ID.");
+            }
+        }
+
+        // Step 2: Retrieve current appointment info
+        String infoSQL = "SELECT a.customer_id, a.service_id, a.staff_id, c.c_fname AS customer, " +
+                         "s.service_name, st.s_fname AS staff " +
+                         "FROM appointments_tbl a " +
+                         "JOIN customers_tbl c ON a.customer_id = c.c_id " +
+                         "JOIN services_tbl s ON a.service_id = s.service_id " +
+                         "JOIN staff_tbl st ON a.staff_id = st.s_id " +
+                         "WHERE a.a_id = ?";
+        Map<String, String> info = dbc.getSingleRecord(infoSQL, appointmentId);
+
+        int customerId = Integer.parseInt(info.get("customer_id"));
+        int serviceId = Integer.parseInt(info.get("service_id"));
+        int staffId = Integer.parseInt(info.get("staff_id"));
+
+        System.out.println("\n🔁 Current Info:");
+        System.out.println("Customer: " + info.get("customer"));
+        System.out.println("Service : " + info.get("service_name"));
+        System.out.println("Staff   : " + info.get("staff"));
+
+        // Step 3: New Date & Time
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime appointmentDateTime = null;
+        String dateInput = "";
+        String timeInput = "";
+
+        while (true) {
+            try {
+                System.out.print("Enter New Appointment Date (YYYY-MM-DD): ");
+                dateInput = sc.nextLine().trim();
+
+                System.out.print("Enter New Appointment Time (HH:MM): ");
+                timeInput = sc.nextLine().trim();
+
+                // Parse and validate
+                LocalDate date = LocalDate.parse(dateInput, dateFormatter);
+                LocalTime time = LocalTime.parse(timeInput, timeFormatter);
+                appointmentDateTime = LocalDateTime.of(date, time);
+
+                if (appointmentDateTime.isBefore(now)) {
+                    System.out.println("❌ Cannot schedule an appointment in the past.\n");
+                    continue;
+                }
+
+                // Check for conflicts
+                String conflictCheck = "SELECT COUNT(*) FROM appointments_tbl " +
+                                       "WHERE staff_id = ? AND date = ? AND time = ? AND status = 'Pending' AND a_id != ?";
+                int conflict = dbc.getQuadValue(conflictCheck, staffId, dateInput, timeInput, appointmentId);
+
+                if (conflict > 0) {
+                    System.out.println("❌ Staff is already booked at that time. Please choose another slot.\n");
+                    continue;
+                }
+
+                break;
+
+            } catch (DateTimeParseException e) {
+                System.out.println("❌ Invalid format. Use YYYY-MM-DD for date and HH:MM for time.\n");
+            }
+        }
+
+        // Step 4: Perform Update
+        String updateSQL = "UPDATE appointments_tbl SET date = ?, time = ?, updated_at = ? WHERE a_id = ?";
+        String nowStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+        dbc.updateRecord(updateSQL, dateInput, timeInput, nowStr, appointmentId);
+        System.out.println("\n✅ Appointment updated successfully!");
+    }
+
+    
+    public void cancelAppointment() {
+        System.out.println("\n===============================");
+        System.out.println("        CANCEL APPOINTMENT");
+        System.out.println("===============================");
+
+        int appointmentId;
+        System.out.print("\nEnter Appointment ID to Cancel: ");
+
+        while (true) {
+            if (sc.hasNextInt()) {
+                appointmentId = sc.nextInt();
+                sc.nextLine(); // Clear buffer
+
+                // Check if appointment exists and is still pending
+                String checkSQL = "SELECT COUNT(*) FROM appointments_tbl WHERE a_id = ? AND status = 'Pending'";
+                if (dbc.getSingleValue(checkSQL, appointmentId) != 0) {
+                    break;
+                } else {
+                    System.out.print("❌ No pending appointment found with ID " + appointmentId + ". Try again: ");
+                }
+            } else {
+                System.out.print("❌ Invalid input! Please enter a numeric Appointment ID: ");
+                sc.next(); // Clear invalid input
+            }
+        }
+
+        // Update the status to 'Cancelled'
+        String updateSQL = "UPDATE appointments_tbl SET status = 'Cancelled', updated_at = ? WHERE a_id = ?";
+        String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+        boolean success = dbc.updateRecord(updateSQL, now, appointmentId);
+
+        if (success) {
+            System.out.println("\n✅ Appointment cancelled successfully!");
+        } else {
+            System.out.println("\n❌ Failed to cancel appointment. Please try again.");
+        }
+    }
+
 }
