@@ -25,37 +25,42 @@ public class DBconnector {
         return con;
     }
     
-    public void addRecord(String sql, Object... values) {
-        try (Connection conn = DBconnector.connectDB(); // Use the connectDB method
+    public boolean addRecord(String sql, Object... values) {
+        try (Connection conn = DBconnector.connectDB();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             // Loop through the values and set them in the prepared statement dynamically
             for (int i = 0; i < values.length; i++) {
                 if (values[i] instanceof Integer) {
-                    pstmt.setInt(i + 1, (Integer) values[i]); // If the value is Integer
+                    pstmt.setInt(i + 1, (Integer) values[i]);
                 } else if (values[i] instanceof Double) {
-                    pstmt.setDouble(i + 1, (Double) values[i]); // If the value is Double
+                    pstmt.setDouble(i + 1, (Double) values[i]);
                 } else if (values[i] instanceof Float) {
-                    pstmt.setFloat(i + 1, (Float) values[i]); // If the value is Float
+                    pstmt.setFloat(i + 1, (Float) values[i]);
                 } else if (values[i] instanceof Long) {
-                    pstmt.setLong(i + 1, (Long) values[i]); // If the value is Long
+                    pstmt.setLong(i + 1, (Long) values[i]);
                 } else if (values[i] instanceof Boolean) {
-                    pstmt.setBoolean(i + 1, (Boolean) values[i]); // If the value is Boolean
+                    pstmt.setBoolean(i + 1, (Boolean) values[i]);
                 } else if (values[i] instanceof java.util.Date) {
-                    pstmt.setDate(i + 1, new java.sql.Date(((java.util.Date) values[i]).getTime())); // If the value is Date
+                    pstmt.setDate(i + 1, new java.sql.Date(((java.util.Date) values[i]).getTime()));
                 } else if (values[i] instanceof java.sql.Date) {
-                    pstmt.setDate(i + 1, (java.sql.Date) values[i]); // If it's already a SQL Date
+                    pstmt.setDate(i + 1, (java.sql.Date) values[i]);
                 } else if (values[i] instanceof java.sql.Timestamp) {
-                    pstmt.setTimestamp(i + 1, (java.sql.Timestamp) values[i]); // If the value is Timestamp
+                    pstmt.setTimestamp(i + 1, (java.sql.Timestamp) values[i]);
                 } else {
-                    pstmt.setString(i + 1, values[i].toString()); // Default to String for other types
+                    pstmt.setString(i + 1, values[i].toString());
                 }
             }
+
             pstmt.executeUpdate();
+            return true; // ✅ Return true if execution was successful
+
         } catch (SQLException e) {
             System.out.println("Error adding record: " + e.getMessage());
+            return false; // ❌ Return false if exception occurred
         }
     }
+
     
     public void viewRecords(String sqlQuery, String[] columnHeaders, String[] columnNames) {
         if (columnHeaders.length != columnNames.length) {
@@ -88,6 +93,12 @@ public class DBconnector {
                     }
                 }
                 rows.add(row);
+            }
+
+            // If no data found
+            if (rows.isEmpty()) {
+                System.out.println("\n⚠️  No records found.\n");
+                return;
             }
 
             // Step 2: Build horizontal line
@@ -124,6 +135,81 @@ public class DBconnector {
             System.out.println("❌ Error retrieving records: " + e.getMessage());
         }
     }
+    
+    public void viewRecordsStaff(String sqlQuery, String[] columnHeaders, String[] columnNames, int param) {
+        if (columnHeaders.length != columnNames.length) {
+            System.out.println("Error: Mismatch between column headers and column names.");
+            return;
+        }
+
+        try (Connection conn = DBconnector.connectDB();
+             PreparedStatement pstmt = conn.prepareStatement(sqlQuery)) {
+
+            pstmt.setInt(1, param);
+            ResultSet rs = pstmt.executeQuery();
+
+            // Step 1: Calculate max width per column
+            int[] maxWidths = new int[columnNames.length];
+
+            for (int i = 0; i < columnHeaders.length; i++) {
+                maxWidths[i] = columnHeaders[i].length();
+            }
+
+            List<String[]> rows = new ArrayList<>();
+
+            while (rs.next()) {
+                String[] row = new String[columnNames.length];
+                for (int i = 0; i < columnNames.length; i++) {
+                    String value = rs.getString(columnNames[i]);
+                    row[i] = value != null ? value : "";
+                    if (row[i].length() > maxWidths[i]) {
+                        maxWidths[i] = row[i].length();
+                    }
+                }
+                rows.add(row);
+            }
+
+            // Show message if no rows found
+            if (rows.isEmpty()) {
+                System.out.println("\n⚠️  No records found.\n");
+                return;
+            }
+
+            // Print header divider
+            StringBuilder divider = new StringBuilder("+");
+            for (int width : maxWidths) {
+                for (int i = 0; i < width + 2; i++) {
+                    divider.append("-");
+                }
+                divider.append("+");
+            }
+
+            // Print headers
+            System.out.println(divider);
+            StringBuilder headerLine = new StringBuilder("|");
+            for (int i = 0; i < columnHeaders.length; i++) {
+                headerLine.append(" ").append(String.format("%-" + maxWidths[i] + "s", columnHeaders[i])).append(" |");
+            }
+            System.out.println(headerLine);
+            System.out.println(divider);
+
+            // Print rows
+            for (String[] row : rows) {
+                StringBuilder rowLine = new StringBuilder("|");
+                for (int i = 0; i < row.length; i++) {
+                    rowLine.append(" ").append(String.format("%-" + maxWidths[i] + "s", row[i])).append(" |");
+                }
+                System.out.println(rowLine);
+            }
+
+            System.out.println(divider);
+
+        } catch (SQLException e) {
+            System.out.println("❌ Error retrieving records: " + e.getMessage());
+        }
+    }
+
+
 
     public void updateRecord(String sql, Object... values) {
         try (Connection conn = DBconnector.connectDB(); // Use the connectDB method
@@ -219,5 +305,25 @@ public class DBconnector {
         }
         return result;
     }
+    
+    public int getTripleValue(String sql, int param1, String param2, String param3) {
+        int result = 0;
+        try (Connection conn = connectDB();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, param1);
+            pstmt.setString(2, param2);
+            pstmt.setString(3, param3);
+
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                result = rs.getInt(1);  // Get first column of the result
+            }
+        } catch (SQLException e) {
+            System.out.println("❌ getTripleValue Error: " + e.getMessage());
+        }
+        return result;
+    }
+
     
 }

@@ -3,10 +3,14 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
+            <file>file:/C:/Users/HP/Documents/NetBeansProjects/Salon%20Booking%20System/src/Management/categoryManagement.java</file>
+            <file>file:/C:/Users/HP/Documents/NetBeansProjects/Salon%20Booking%20System/src/Management/appointmentBooking.java</file>
             <file>file:/C:/Users/HP/Documents/NetBeansProjects/Salon%20Booking%20System/src/config/DBconnector.java</file>
+            <file>file:/C:/Users/HP/Documents/NetBeansProjects/Salon%20Booking%20System/src/salon/booking/system/Main.java</file>
             <file>file:/C:/Users/HP/Documents/NetBeansProjects/Salon%20Booking%20System/src/Management/staffManagement.java</file>
             <file>file:/C:/Users/HP/Documents/NetBeansProjects/Salon%20Booking%20System/src/Management/customerManagement.java</file>
             <file>file:/C:/Users/HP/Documents/NetBeansProjects/Salon%20Booking%20System/src/config/utils.java</file>
+            <file>file:/C:/Users/HP/Documents/NetBeansProjects/Salon%20Booking%20System/src/Management/serviceManagement.java</file>
         </group>
     </open-files>
 </project-private>

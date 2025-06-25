@@ -113,7 +113,7 @@ public class staffManagement {
     
     public void viewStaff() {
         
-        System.out.println("\n🧾 CUSTOMER LIST: ");
+        System.out.println("\n🧾 STAFF LIST: ");
         
         String sqlQuery = "SELECT s_id, s_fname, s_email, s_phone, position, specialization, experience, status FROM staff_tbl";
         String[] columnHeaders = {"ID", "Name", "Email", "Phone Number", "Position", "Specialization", "Experience", "Status"};

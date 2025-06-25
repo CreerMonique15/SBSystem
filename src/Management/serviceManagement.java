@@ -62,7 +62,7 @@ public class serviceManagement {
         System.out.print("Enter Service Name: ");
         String sname = utils.getNonEmptyInput("", sc);
         
-        System.out.print("Enter Description");
+        System.out.print("Enter Description: ");
         String des = utils.getNonEmptyInput("", sc);
         
         cm.viewCategories();
