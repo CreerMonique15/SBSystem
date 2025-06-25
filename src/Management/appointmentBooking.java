@@ -3,9 +3,13 @@ package Management;
 
 import config.DBconnector;
 import config.utils;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Scanner;
+
 
 public class appointmentBooking {
     Scanner sc = new Scanner(System.in); 
@@ -14,13 +18,13 @@ public class appointmentBooking {
     serviceManagement sm = new serviceManagement();
     staffManagement stm = new staffManagement();
     
-    public void appoinmentCRUD() {
+    public void appointmentCRUD() {
         
         String action;
         do{
             System.out.println( "___________________________________________________________________________________________________________\n" +
                                 "|                                                                                                         |\n" +
-                                "|                             📅  APPOINTMENT BOOKING MENU                                                |\n" +
+                                "|                                    ===  APPOINTMENT BOOKING MENU ===                                    |\n" +
                                 "|_________________________________________________________________________________________________________|\n" +
                                 "|                                                                                                         |\n" +
                                 "|  [1] Book New Appointment                                                                               |\n" +
@@ -153,34 +157,70 @@ public class appointmentBooking {
             }
         }
 
-        // Step 4: Enter Appointment Date and Time
-        System.out.print("Enter Appointment Date (YYYY-MM-DD) : ");
-        String date = sc.nextLine().trim();
+                DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+           DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
 
-        System.out.print("Enter Appointment Time (HH:MM)      : ");
-        String time = sc.nextLine().trim();
+           LocalDateTime now = LocalDateTime.now();
+           LocalDateTime appointmentDateTime = null;
+           String dateInput = "";
+           String timeInput = "";
+           LocalDate date = null;
+           LocalTime time = null;
 
-        // Check if staff is already booked 
-        String checkAvailability = "SELECT COUNT(*) FROM appointments_tbl WHERE staff_id = ? AND date = ? AND time = ?";
-        int conflict = dbc.getTripleValue(checkAvailability, staffId, date, time);
-        if (conflict > 0) {
-            System.out.println("❌ Staff is already booked at that time. Try a different time.");
-            return;
-        }
-        
-        System.out.println("");
+           while (true) {
+               try {
+                   // Step 4: Enter Appointment Date and Time
+                   System.out.print("Enter Appointment Date (YYYY-MM-DD): ");
+                   dateInput = sc.nextLine().trim();
 
-        // Step 5: Insert into Appointments Table
-        String insertSQL = "INSERT INTO appointments_tbl (customer_id, service_id, staff_id, date, time, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'Pending',? ,?)";
-        
-        String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        boolean success = dbc.addRecord(insertSQL, cusId, serId, staffId, date, time, now, now);
+                   System.out.print("Enter Appointment Time (HH:MM): ");
+                   timeInput = sc.nextLine().trim();
 
-        if (success) {
-            System.out.println("\n✅ Appointment successfully booked!");
-        } else {
-            System.out.println("\n❌ Failed to book appointment. Please try again.");
-        }
+                   // Parse date and time
+                   date = LocalDate.parse(dateInput, dateFormatter);
+                   time = LocalTime.parse(timeInput, timeFormatter);
+                   appointmentDateTime = LocalDateTime.of(date, time);
+
+                   // ✅ Validate that appointment is not in the past
+                   if (appointmentDateTime.isBefore(now)) {
+                       System.out.println("❌ Appointment must be scheduled for the present or future only.\n");
+                       continue;
+                   }
+
+                   // ✅ Check if staff is already booked
+                   String checkAvailability = "SELECT COUNT(*) FROM appointments_tbl WHERE staff_id = ? AND date = ? AND time = ?";
+                   int conflict = dbc.getTripleValue(checkAvailability, staffId, dateInput, timeInput);
+
+                   if (conflict > 0) {
+                       System.out.println("❌ Staff is already booked at that time. Try a different time.\n");
+                       continue;
+                   }
+
+                   // ✅ All validations passed
+                   break;
+
+               } catch (DateTimeParseException e) {
+                   System.out.println("❌ Invalid format. Please enter date as YYYY-MM-DD and time as HH:MM.\n");
+               }
+           }
+
+           // ✅ Ready to insert
+           System.out.println("✅ Appointment slot is valid and available.");
+
+           // Step 5: Insert into Appointments Table
+           String insertSQL = "INSERT INTO appointments_tbl (customer_id, service_id, staff_id, date, time, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'Pending', ?, ?)";
+
+           // ✅ Format timestamp
+           String nowStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+           boolean success = dbc.addRecord(insertSQL, cusId, serId, staffId, dateInput, timeInput, nowStr, nowStr);
+
+           if (success) {
+               System.out.println("\n✅ Appointment successfully booked!");
+           } else {
+               System.out.println("\n❌ Failed to book appointment. Please try again.");
+           }
+
+   
     }
-
 }

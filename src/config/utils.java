@@ -13,7 +13,7 @@ public class utils {
         String input;
 
         while (true) {
-            System.out.print("| Enter Action: ");
+            System.out.print(" Enter Action: ");
             input = sc.nextLine();
             System.out.println("|_________________________________________________________________________________________________________|");
 

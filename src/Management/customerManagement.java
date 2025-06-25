@@ -19,7 +19,7 @@ public class customerManagement {
         do{
             System.out.println( "___________________________________________________________________________________________________________\n" +
                                 "|                                                                                                         |\n" +
-                                "|                                 👤  CUSTOMER MANAGEMENT MENU                                             |\n" +
+                                "|                                     === CUSTOMER MANAGEMENT MENU ===                                    |\n" +
                                 "|_________________________________________________________________________________________________________|\n" +
                                 "|                                                                                                         |\n" +
                                 "|  [1] Add New Customer                                                                                   |\n" +
@@ -141,25 +141,36 @@ public class customerManagement {
         System.out.println("         UPDATE CUSTOMER");
         System.out.println("===============================");
 
-        // Ask for Customer ID
-        System.out.print("\nEnter Customer ID to update: ");
-        String idInput = sc.nextLine().trim();
+         // Ask for Customer ID
+         System.out.print("\nEnter Customer ID to update: ");
+         String idInput = sc.nextLine().trim();
 
-        if (!idInput.matches("\\d+")) {
-            System.out.println("❌ Invalid ID format.");
-            return;
-        }
+         // Validate input is numeric
+         while (!idInput.matches("\\d+")) {
+             System.out.println("❌ Invalid ID format. Please enter numbers only.\n");
+             System.out.print("Enter Customer ID again: ");
+             idInput = sc.nextLine().trim();
+         }
 
-        int id = Integer.parseInt(idInput);
+         int id = Integer.parseInt(idInput);
 
-        // ✅ Check if the customer exists
-        String checkSql = "SELECT c_id FROM customers_tbl WHERE c_id = ?";
-        int existingId = (int) dbc.getSingleValue(checkSql, id);
+         // Check if customer ID exists
+         while (dbc.getSingleValue("SELECT COUNT(*) FROM customers_tbl WHERE c_id = ?", id) == 0) {
+             System.out.println("❌ Customer with ID \"" + id + "\" does not exist.\n");
+             System.out.print("Enter Customer ID again: ");
+             idInput = sc.nextLine().trim();
 
-        if (existingId == 0) {
-            System.out.println("❌ Customer with ID " + id + " does not exist.");
-            return;
-        }
+             // Validate new input is numeric
+             while (!idInput.matches("\\d+")) {
+                 System.out.println("❌ Invalid ID format. Please enter numbers only.\n");
+                 System.out.print("Enter Customer ID again: ");
+                 idInput = sc.nextLine().trim();
+             }
+
+             id = Integer.parseInt(idInput);
+         }
+
+
 
         // Continue with update inputs
         System.out.println("\n🔁 Enter new values (leave blank to keep existing):");
@@ -202,7 +213,7 @@ public class customerManagement {
             } else if (choice.equals("3")) {
                 gender = ""; break;
             } else {
-                System.out.println("❌ Invalid choice.");
+                System.out.println("❌ Invalid choice.\n");
             }
         }
 
@@ -279,46 +290,115 @@ public class customerManagement {
     }
     
     public void searchCustomer() {
-        System.out.println("\n===============================");
-        System.out.println("        SEARCH CUSTOMER");
-        System.out.println("===============================");
+      String repeat;
 
-        System.out.print("Search by [1] ID or [2] Name: ");
-        String choice = sc.nextLine().trim();
+        do {
+            System.out.println("\n===============================");
+            System.out.println("        SEARCH CUSTOMER");
+            System.out.println("===============================");
 
-        String sql;
-        String[] headers = { "ID", "Name", "Email", "Phone", "Gender", "Address" };
-        String[] columns = { "c_id", "c_fname", "c_email", "c_phone", "c_gender", "c_address" };
+            System.out.println("OPTIONS:"
+                    + "\n1. ID"
+                    + "\n2. Name");
 
-        if (choice.equals("1")) {
-            // Search by ID
-            System.out.print("Enter Customer ID: ");
-            String idInput = sc.nextLine().trim();
+            System.out.print("\nEnter an option to search: ");
+            String choice = sc.nextLine().trim();
 
-            if (!idInput.matches("\\d+")) {
-                System.out.println("❌ Invalid ID format.");
-                return;
+            // ✅ FIXED condition: use &&
+            while (!choice.equals("1") && !choice.equals("2")) {
+                System.out.println("❌ Please choose an option between 1 and 2. Try again.");
+                System.out.print("\nEnter an option: ");
+                choice = sc.nextLine().trim();
             }
 
-            sql = "SELECT c_id, c_fname, c_email, c_phone, c_gender, c_address FROM customers_tbl WHERE c_id = " + idInput;
-            dbc.viewRecords(sql, headers, columns);
+            String sql;
+            String[] headers = { "ID", "Name", "Email", "Phone", "Gender", "Address" };
+            String[] columns = { "c_id", "c_fname", "c_email", "c_phone", "c_gender", "c_address" };
 
-        } else if (choice.equals("2")) {
-            // Search by Name (partial match)
-            System.out.print("Enter Customer Name: ");
-            String nameInput = sc.nextLine().trim();
+            if (choice.equals("1")) {
+                // ✅ Search by ID
+                System.out.print("\nEnter Customer ID: ");
+                String idInput = sc.nextLine().trim();
 
-            if (nameInput.isEmpty()) {
-                System.out.println("❌ Name cannot be empty.");
-                return;
+                // Validate numeric
+                while (!idInput.matches("\\d+")) {
+                    System.out.println("❌ Invalid ID format. Please enter numbers only.");
+                    System.out.print("\nEnter Customer ID again: ");
+                    idInput = sc.nextLine().trim();
+                }
+
+                int id = Integer.parseInt(idInput);
+
+                // Check if customer exists
+                while (dbc.getSingleValue("SELECT COUNT(*) FROM customers_tbl WHERE c_id = ?", id) == 0) {
+                    System.out.println("❌ Customer with ID \"" + id + "\" does not exist.");
+                    System.out.print("\nEnter Customer ID again: ");
+                    idInput = sc.nextLine().trim();
+
+                    while (!idInput.matches("\\d+")) {
+                        System.out.println("❌ Invalid ID format. Please enter numbers only.");
+                        System.out.print("\nEnter Customer ID again: ");
+                        idInput = sc.nextLine().trim();
+                    }
+
+                    id = Integer.parseInt(idInput);
+                }
+
+                sql = "SELECT c_id, c_fname, c_email, c_phone, c_gender, c_address FROM customers_tbl WHERE c_id = " + id;
+                dbc.viewRecords(sql, headers, columns);
+
+            } else {
+                // ✅ Search by Name
+                System.out.print("\nEnter Customer Name: ");
+                String nameInput = sc.nextLine().trim();
+
+                while (nameInput.isEmpty() || nameInput.matches("\\d+")) {
+                    if (nameInput.isEmpty()) {
+                        System.out.println("❌ Name cannot be empty.");
+                    } else {
+                        System.out.println("❌ Invalid name format. Please enter letters only.");
+                    }
+                    System.out.print("\nEnter customer's full name again: ");
+                    nameInput = sc.nextLine().trim();
+                }
+
+                while (dbc.getSingleValue("SELECT COUNT(*) FROM customers_tbl WHERE c_fname = ?", nameInput) == 0) {
+                    System.out.println("❌ Customer \"" + nameInput + "\" does not exist.");
+                    System.out.print("Enter customer name again: ");
+                    nameInput = sc.nextLine().trim();
+
+                    while (nameInput.isEmpty() || nameInput.matches("\\d+")) {
+                        if (nameInput.isEmpty()) {
+                            System.out.println("❌ Name cannot be empty.");
+                        } else {
+                            System.out.println("❌ Invalid name format. Please enter letters only.");
+                        }
+                        System.out.print("\nEnter customer's full name again: ");
+                        nameInput = sc.nextLine().trim();
+                    }
+                }
+
+                System.out.println("✅ Customer \"" + nameInput + "\" found in the system.");
+
+                sql = "SELECT c_id, c_fname, c_email, c_phone, c_gender, c_address FROM customers_tbl WHERE c_fname LIKE '%" + nameInput + "%'";
+                dbc.viewRecords(sql, headers, columns);
             }
 
-            sql = "SELECT c_id, c_fname, c_email, c_phone, c_gender, c_address FROM customers_tbl WHERE c_fname LIKE '%" + nameInput + "%'";
-            dbc.viewRecords(sql, headers, columns);
+            // ✅ Ask to search again with valid yes/no
+            while (true) {
+                System.out.print("\nDo you want to search for another customer? [yes/no]: ");
+                repeat = sc.nextLine().trim().toLowerCase();
 
-        } else {
-            System.out.println("❌ Invalid choice.");
-        }
-    }
+                if (repeat.equalsIgnoreCase("yes") || repeat.equalsIgnoreCase("no")) {
+                    break;
+                } else {
+                    System.out.println("❌ The answer must be 'yes' or 'no' only. Please try again.\n");
+                }
+            }
 
+        } while (repeat.equals("yes"));
+
+               }
+    
+    
 }
