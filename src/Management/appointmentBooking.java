@@ -194,24 +194,25 @@ public class appointmentBooking {
                    continue;
                }
 
-               // ✅ All validations passed
                break;
 
            } catch (DateTimeParseException e) {
                System.out.println("❌ Invalid format. Please enter date as YYYY-MM-DD and time as HH:MM.\n");
            }
        }
+       
+       // Get the price for the selected service
+        String priceSql = "SELECT price FROM services_tbl WHERE service_id = ?";
+        double amount = dbc.getSingleValue(priceSql, serId);
 
-       // ✅ Ready to insert
+
        System.out.println("✅ Appointment slot is valid and available.");
 
-       // Step 5: Insert into Appointments Table
-       String insertSQL = "INSERT INTO appointments_tbl (customer_id, service_id, staff_id, date, time, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'Pending', ?, ?)";
+       String insertSQL = "INSERT INTO appointments_tbl (customer_id, service_id, staff_id, date, time, total, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'Pending', ?, ?)";
 
-       // ✅ Format timestamp
        String nowStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
-       boolean success = dbc.addRecord(insertSQL, cusId, serId, staffId, dateInput, timeInput, nowStr, nowStr);
+       boolean success = dbc.addRecord(insertSQL, cusId, serId, staffId, dateInput, timeInput, amount, nowStr, nowStr);
 
        if (success) {
            System.out.println("\n✅ Appointment successfully booked!");
@@ -230,6 +231,7 @@ public class appointmentBooking {
                           "       st.s_fname AS staff, " +
                           "       a.date AS date, " +
                           "       a.time AS time, " +
+                          "       a.total AS total, " +
                           "       a.status AS status " +
                           "FROM appointments_tbl a " +
                           "JOIN customers_tbl c ON a.customer_id = c.c_id " +
@@ -238,8 +240,8 @@ public class appointmentBooking {
                           "JOIN staff_tbl st ON a.staff_id = st.s_id " +
                           "ORDER BY a.date ASC, a.time ASC";
 
-        String[] headers = {"ID", "Customer", "Service", "Category", "Staff", "Date", "Time", "Status"};
-        String[] fields  = {"a_id", "customer", "service", "category", "staff", "date", "time", "status"};
+        String[] headers = {"ID", "Customer", "Service", "Category", "Staff", "Date", "Time", "Total", "Status"};
+        String[] fields  = {"a_id", "customer", "service", "category", "staff", "date", "time", "total", "status"};
 
         dbc.viewRecords(sqlQuery, headers, fields);
     }
