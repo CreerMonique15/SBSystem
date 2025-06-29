@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 
 public class utils {
     
-    private static Scanner sc = new Scanner(System.in);
+    public static Scanner sc = new Scanner(System.in);
     
     // Reusable method to get a validated choice as a String within a given numeric range
     public static String getValidatedChoice(int min, int max) {

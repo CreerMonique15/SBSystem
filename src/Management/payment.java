@@ -111,11 +111,9 @@ public class payment {
             }
         }
 
-        // Get appointment total
         String totalSQL = "SELECT total FROM appointments_tbl WHERE a_id = ?";
         double totalAmount = dbc.getSingleValue(totalSQL, appId);
 
-        // Sum of previous payments on this appointment
         String paidSQL = "SELECT SUM(CAST(amount AS DOUBLE)) FROM payments_tbl WHERE appointment_id = ?";
         double totalPaid = dbc.getSingleValue(paidSQL, appId);
 
