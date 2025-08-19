@@ -1,5 +1,5 @@
 
-package main;
+package salon.main;
 
 import Management.appointmentBooking;
 import Management.categoryManagement;
